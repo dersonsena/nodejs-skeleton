@@ -1,0 +1,60 @@
+version: "3"
+services:
+  app:
+    image: node:10
+    container_name: ${DOCKER_API_SERVICE_NAME}
+    user: "node"
+    working_dir: /home/node/app
+    command: yarn dev
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - DB_URI='mongodb://schoology-db/schoology'
+      - DROP_DATABASE=true
+      - REPLACE_ID=true
+    ports:
+      - "${DOCKER_API_PORT}:3000"
+    volumes:
+      - ./backend/:/home/node/app
+    depends_on:
+      - db
+    links:
+      - db
+    networks:
+      - schoology-network
+
+  webapp:
+    image: node:10
+    container_name: ${DOCKER_WEBAPP_SERVICE_NAME}
+    user: "node"
+    working_dir: /home/node/app
+    command: yarn start
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - CHOKIDAR_USEPOLLING=true
+    expose:
+      - "35729"
+      - "3000"
+    ports:
+      - "${DOCKER_WEBAPP_PORT}:3000"
+      - "35729:35729"
+    volumes:
+      - ./frontend/:/home/node/app
+    depends_on:
+      - app
+      - db
+    networks:
+      - schoology-network
+
+  db:
+    image: "mongo"
+    container_name: ${DOCKER_DB_SERVICE_NAME}
+    ports:
+      - "${DOCKER_DB_PORT}:27017"
+    volumes:
+      - ./.docker/data/db:/home/data
+    networks:
+      - schoology-network
+
+networks:
+  schoology-network:
+    driver: bridge
